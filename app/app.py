@@ -6,7 +6,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 st.set_page_config(layout="wide")
 
 # Titre de la page
-st.markdown('<div class="title">🔍 Recrutement IA : Trouvez le Candidat Idéal !</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">🎯 Recrutement IA : Trouvez le Candidat Idéal !</div>', unsafe_allow_html=True)
 
 # Style CSS personnalisé
 st.markdown("""
@@ -25,14 +25,13 @@ st.markdown("""
         text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     }
     .stButton>button {
-        background-color: #45a049;
+        background-color: #ccffcc;
         font-size: 16px;
         border-radius: 5px;
-        color: white;
     }
     .stButton>button:hover {
-        
-        background-color: white;
+        background-color: #45a049;
+        color: white;
     }
     .stTitle {
         color: #2c3e50;
@@ -129,24 +128,24 @@ with tabs[0]:
     AgGrid(df_offres, gridOptions=grid_options, height=400, width='100%')
 
     
-    if st.button("Nuage de Mots"):
-        st.subheader("🔍 Nuage de mots des descriptions de postes :")
+    if st.button("💭 Nuage de Mots"):
+        st.subheader("💭 Nuage de mots des descriptions de postes :")
         generate_wordcloud(df_offres)
 
-    if st.button("Distribution des niveaux d'expérience"):
+    if st.button("📈 Distribution des niveaux d'expérience"):
         st.subheader("📈 Distribution des niveaux d'expérience demandés :")
         plot_experience_distribution(df_offres)
 
-    if st.button("Clustering des Offres"):
+    if st.button("🤖 Clustering des Offres"):
         # Appeler la fonction cluster_offers et récupérer les valeurs
         df_clusters, clusters_terms, X = cluster_offers(df_offres)
 
         # Afficher le DataFrame avec les clusters
-        st.subheader("Tableau des Offres avec leurs clusters:")
+        st.subheader("🗂️ Tableau des Offres avec leurs clusters:")
         st.write(df_clusters)
 
         # Afficher les termes les plus importants pour chaque cluster
-        st.subheader("Termes les plus importants pour chaque cluster")
+        st.subheader("🔑 Termes les plus importants pour chaque cluster")
 
         for cluster, terms in clusters_terms.items():
             # Utiliser une couleur et une typographie plus modernes
@@ -159,8 +158,14 @@ with tabs[0]:
             """, unsafe_allow_html=True)
 
         # Appliquer t-SNE et afficher le graphique interactif avec Plotly
-        st.subheader("Visualisation des clusters avec t-SNE:")
-        fig = plot_tsne(X, df_clusters['cluster_name'].values)  # Passer X et les labels des clusters
+        st.subheader("🌐 Visualisation des clusters avec t-SNE:")
+        fig = plot_tsne(X, df_clusters['cluster_name'].values)
+
+        fig.update_layout(
+            autosize=True,
+            width=600, 
+            height=600  
+        )
         st.plotly_chart(fig)
 
 
