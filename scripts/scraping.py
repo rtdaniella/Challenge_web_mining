@@ -37,7 +37,7 @@ cookies = {
 session = requests.Session()
 session.headers.update(headers)
 
-def parse_soup(soup: bs4.BeautifulSoup)->dict:
+def parse_soup(soup: bs4.BeautifulSoup):
     competences = []
     annonce = dict()
 
@@ -60,23 +60,23 @@ def parse_soup(soup: bs4.BeautifulSoup)->dict:
         if educ:
             education = educ[0].text
             educ_requis = True if item.find("span", {"class": "skill-required"}) else False
-            annonce["education"] = (education, educ_requis)
+            annonce["education"] = education
         if lang:
             langue = lang.find("span", {"class": "skill-name"}).text
             langue_requis = True if item.find("span", {"class": "skill-required"}) else False
-            competences.append((langue, langue_requis))
+            competences.append(langue)
         if perm:
             permis = item.find("span", {"class": "skill-name"}).text
             permis_requis = True if item.find("span", {"class": "skill-required"}) else False
-            competences.append((permis, permis_requis))
+            competences.append(permis)
         if comp:
             competence = comp.find("span", {"class": "skill-name"}).text
             requis = True if comp.find("span", {"class": "skill-required"}) else False
-            competences.append((competence, requis))
+            competences.append(competence)
         if sav:
             savoir = sav.find("span", {"class": "skill-name"}).text
             requis = True if sav.find("span", {"class": "skill-required"}) else False
-            competences.append((savoir, requis))
+            competences.append(savoir)
     annonce["competences"] = competences
     infos = soup.find("div", {"class": "description-aside col-sm-4 col-md-5"}).select("dd")
     divers = [item.text for item in infos[2:]]
@@ -84,59 +84,41 @@ def parse_soup(soup: bs4.BeautifulSoup)->dict:
     return annonce
 
 
-
 def to_db(annonce: dict):
-    '''
-    TODO:
-        - corriger l'auto-increment en cas de doublon dans une table
-    '''
+    # Connexion à la base de données PostgreSQL
     conn = psycopg2.connect(
         dbname="webmining",
         user="postgres",
         password="postgres",
-        host="my_postgres_container",
+        host="localhost",
         port="5432"
     )
     cur = conn.cursor()
 
-    for comp in annonce["competences"]:
-        if isinstance(comp, str):
-            competence = comp
-            requis = False
-            cur.execute("""
-                INSERT INTO competences (nom, requis)
-                VALUES (%s, %s)
-                ON CONFLICT (nom) DO NOTHING;
-            """, (competence, requis))
-        else:
-            for competence, requis in comp:
-                cur.execute("""
-                    INSERT INTO competences (nom, requis)
-                    VALUES (%s, %s)
-                    ON CONFLICT (nom) DO NOTHING;
-                """, (competence, requis))
+    for competence in annonce["competences"]:
+        cur.execute("""
+            INSERT INTO competences (nom)
+            VALUES (%s)
+            ON CONFLICT (nom) DO NOTHING;
+        """, (competence,))
 
+    # Insert postes (job positions)
     cur.execute("""
         INSERT INTO annonces (intitule_poste, description, experience, divers, reference)
         VALUES (%s, %s, %s, %s, %s)
         RETURNING reference;
     """, (annonce["intitule_poste"], annonce["description"], annonce["experience"], annonce["divers"], annonce["reference"]))
     
+    # print(cur.fetchone())
     annonce_id = cur.fetchone()[0]
+    print(annonce_id)
 
-    for comp in annonce["competences"]:
-        if isinstance(comp, str):
-            competence = comp
-            cur.execute("""
-            INSERT INTO annonce_competences (annonce_reference, competence_id)
-            SELECT %s, id FROM competences WHERE nom = %s;
-            """, (annonce_id, competence))
-        else:
-            for competence, requis in annonce["competences"]:
-                cur.execute("""
-                    INSERT INTO annonce_competences (annonce_reference, competence_id)
-                    SELECT %s, id FROM competences WHERE nom = %s;
-                """, (annonce_id, competence))
+    for competence in annonce["competences"]:
+        cur.execute("""
+        INSERT INTO annonce_competences (annonce_reference, competence_id)
+        SELECT %s, id FROM competences WHERE nom = %s;
+        """, (annonce_id, competence))
+
 
 
     # Validation des modifications et fermeture de la connexion
@@ -165,4 +147,3 @@ def get_daily_listing():
             urls = urls + [link.get("href") for link in soup.select('ul[data-container-type="zone"] > li > a')]
             time.sleep(2)
             break
-    

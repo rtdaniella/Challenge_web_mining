@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS annonces(
 CREATE TABLE IF NOT EXISTS competences (
     id SERIAL PRIMARY KEY,
     nom TEXT NOT NULL UNIQUE,
-    requis BOOLEAN NOT NULL
+    requis BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS annonce_competences (
