@@ -1,12 +1,62 @@
 import streamlit as st
-from utils import show_pdf, process_and_store_lm, get_offres_from_db, generate_wordcloud, plot_experience_distribution, cluster_offers, plot_tsne
+from utils import (
+    fix_json_value,
+    get_db_connection,
+    import_csv_to_cv,
+    extract_text_from_pdf,
+    query_mistral,
+    extract_data,
+    insert_into_db,
+    process_and_store_lm,
+    process_folder,
+    show_pdf,
+    get_offres_from_db,
+    preprocess_text,
+    generate_wordcloud,
+    plot_experience_distribution,
+    cluster_offers,
+    plot_tsne
+)
 import time
 from st_aggrid import AgGrid, GridOptionsBuilder
+import logging
+import os
 
 st.set_page_config(layout="wide")
 
 # Titre de la page
 st.markdown('<div class="title">🎯 Recrutement IA : Trouvez le Candidat Idéal !</div>', unsafe_allow_html=True)
+# Fonction pour vérifier si une table existe dans la BDD
+def table_exists(table_name):
+    conn = get_db_connection()
+    if conn is None:
+        st.error("Impossible de se connecter à la base de données pour vérifier l'existence de la table.")
+        return False
+    cursor = conn.cursor()
+    query = """
+    SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = %s
+    );
+    """
+    cursor.execute(query, (table_name,))
+    exists = cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return exists
+
+# Vérification automatique des tables et import des données si nécessaire
+if not table_exists("cv"):
+    st.info("La table 'cv' n'existe pas. Importation des CSV...")
+    import_csv_to_cv()
+else:
+    st.info("La table 'cv' existe déjà.")
+
+if not table_exists("lm"):
+    st.info("La table 'lm' n'existe pas. Importation des PDF...")
+    process_folder()
+else:
+    st.info("La table 'lm' existe déjà.")
 
 # Style CSS personnalisé
 st.markdown("""
@@ -30,8 +80,7 @@ st.markdown("""
         border-radius: 5px;
     }
     .stButton>button:hover {
-        background-color: #45a049;
-        color: white;
+        background-color: white;
     }
     .stTitle {
         color: #2c3e50;
@@ -43,17 +92,14 @@ st.markdown("""
         padding: 10px 20px;
         transition: background 0.3s;
     }
-            
     .stTabs [role="tab"][aria-selected="true"] {
         background: #4eb151;
         color: white;
         border-radius: 5px;
     }
-            
     .stTabs [role="tab"]:hover {
         background: #46a049;
     }
-
     .result-card {
         background-color: #ffffff;
         border-radius: 10px;
@@ -85,48 +131,33 @@ st.markdown("""
 # Création des onglets
 tabs = st.tabs(["💼 Offre d'Emploi", "📄 Candidatures", "🤝 Matching"])
 
-# Contenu pour l'onglet 1 : Offre d'emploi
+# Onglet 1 : Offre d'emploi
 with tabs[0]:
     st.subheader("🔎 Explorez les Offres d'Emploi Disponibles")
     st.write("Consultez et recherchez des offres d'emploi provenant de France Travail.")
-
+    
     # Récupérer et afficher les offres d'emploi
     df_offres = get_offres_from_db()
-
-    # Utiliser st.columns pour avoir deux filtres horizontaux
+    
+    # Filtrage par expérience et intitulé de poste
     col1, col2 = st.columns(2)
-
-    # Filtre pour le niveau d'expérience dans la première colonne
     with col1:
         selected_experience = st.selectbox("Sélectionnez le niveau d'expérience", ["Tous"] + list(df_offres['experience'].unique()))
-
-    # Filtre pour l'intitulé de poste dans la deuxième colonne
     with col2:
         selected_intitule = st.selectbox("Sélectionnez l'intitulé du poste", ["Tous"] + list(df_offres['intitule_poste'].unique()))
-
-    # Appliquer les filtres si l'utilisateur en sélectionne
+    
     if selected_experience != "Tous":
         df_offres = df_offres[df_offres['experience'] == selected_experience]
-
     if selected_intitule != "Tous":
         df_offres = df_offres[df_offres['intitule_poste'] == selected_intitule]
-
-    # Afficher le tableau interactif des offres filtrées
+    
     st.write(f"Affichage des offres : Niveau d'expérience '{selected_experience}' et intitulé de poste '{selected_intitule}'")
-
-    # Construire les options pour le tableau interactif
+    
     gb = GridOptionsBuilder.from_dataframe(df_offres)
-    gb.configure_pagination(paginationPageSize=10)  # Permet la pagination
-    gb.configure_default_column(
-        filterable=True,  # Ajouter des filtres
-        sortable=True,  # Rendre les colonnes triables
-        resizable=True  # Rendre les colonnes redimensionnables
-    )
+    gb.configure_pagination(paginationPageSize=10)
+    gb.configure_default_column(filterable=True, sortable=True, resizable=True)
     grid_options = gb.build()
-
-    # Afficher le tableau interactif
     AgGrid(df_offres, gridOptions=grid_options, height=400, width='100%')
-
     
     if st.button("💭 Nuage de Mots"):
         st.subheader("💭 Nuage de mots des descriptions de postes :")
@@ -148,8 +179,6 @@ with tabs[0]:
         st.subheader("🔑 Termes les plus importants pour chaque cluster")
 
         for cluster, terms in clusters_terms.items():
-            # Utiliser une couleur et une typographie plus modernes
-            # Utiliser flexbox pour aligner le titre et les termes sur la même ligne
             st.markdown(f"""
                 <div style="padding: 10px; margin: 10px 0; background-color: #f0f8ff; border-radius: 10px; display: flex; align-items: center;">
                     <h4 style="color: #006400; font-size: 16px; margin-right: 15px;">💡 <strong>{cluster} :</strong></h4>
@@ -168,101 +197,48 @@ with tabs[0]:
         )
         st.plotly_chart(fig)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Contenu pour l'onglet 2 : Candidatures
+# Onglet 2 : Candidatures
 with tabs[1]:
     st.subheader("📄 Parcourez les Candidatures")
     st.write("Téléchargez un CV et une Lettre de Motivation pour un candidat.")
-
-    # Créer deux colonnes pour l'affichage horizontal
     col1, col2 = st.columns(2)
-
-    # Téléchargement du CV (format PDF ou image) dans la première colonne
+    
     with col1:
         cv_file = st.file_uploader("Téléchargez votre CV (PDF ou Image)", type=["pdf", "jpg", "jpeg", "png"])
-        
         if cv_file is not None:
             with st.expander("Aperçu du CV :"):
-                # Si c'est un fichier PDF
                 if cv_file.type == "application/pdf":
-                    # Sauvegarder le fichier PDF localement temporairement
                     with open("cv_temp.pdf", "wb") as f:
                         f.write(cv_file.read())
                     show_pdf("cv_temp.pdf")
-                
-                # Si c'est une image
                 elif cv_file.type in ["image/jpeg", "image/png", "image/jpg"]:
-                    # Afficher l'image téléchargée
                     st.download_button(label="Télécharger le CV", data=cv_file, file_name="cv_image.jpg", mime="image/jpeg")
                     st.image(cv_file, caption="Aperçu de l'image du CV", use_container_width=True)
-
-    # Téléchargement de la LM (format PDF uniquement) dans la deuxième colonne
+    
     with col2:
         lm_file = st.file_uploader("Téléchargez votre Lettre de Motivation (PDF)", type=["pdf"])
-        
         if lm_file is not None:
             with st.expander("Aperçu de la Lettre de Motivation :"):
-                # Si c'est un fichier PDF
                 if lm_file.type == "application/pdf":
-                    # Sauvegarder le fichier PDF localement temporairement
                     with open("lm_temp.pdf", "wb") as f:
                         f.write(lm_file.read())
                     show_pdf("lm_temp.pdf")
-
-            # Ajouter un bouton pour démarrer l'analyse
             if st.button("Démarrer l'Analyse"):
-                # Initialiser la barre de progression à 0
                 progress_bar = st.progress(0)
-                
-                # Processus complet avec la progression
                 result = None
-                for i in range(1, 101):  # Simule l'avancement du processus
-                    # Tu peux ici ajouter des pauses pour simuler un processus long
-                    time.sleep(0.10)  # Pause pour simuler un processus long
-                    progress_bar.progress(i)  # Mise à jour de la barre de progression
-                    
-                    # Une fois la barre à 100%, lance le processus d'analyse
+                for i in range(1, 101):
+                    time.sleep(0.10)
+                    progress_bar.progress(i)
                     if i == 100:
-                        result = process_and_store_lm("lm_temp.pdf")
-                
+                        # Note : process_and_store_lm attend un cv_id en argument, ici on utilise une valeur d'exemple.
+                        result = process_and_store_lm("lm_temp.pdf", "IDXXXXXX")
                 if result:
                     st.write("Données extraites :")
-                    
-                    # Organiser les informations extraites sous forme de cartes stylisées
-
-                    st.markdown(f'<h3>🏷️ Compétences</h3>', unsafe_allow_html=True)
+                    st.markdown('<h3>🏷️ Compétences</h3>', unsafe_allow_html=True)
                     st.markdown(f'<p>Compétences mentionnées : <span class="highlight">{result["competences"]}</span></p>', unsafe_allow_html=True)
-
-                    st.markdown(f'<h3>🌍 Localisation</h3>', unsafe_allow_html=True)
+                    st.markdown('<h3>🌍 Localisation</h3>', unsafe_allow_html=True)
                     st.markdown(f'<p>Lieu de travail souhaité : <span class="highlight">{result["lieu"]}</span></p>', unsafe_allow_html=True)
-
-                    st.markdown(f'<h3>💬 Motivations</h3>', unsafe_allow_html=True)
-                    st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</p>', unsafe_allow_html=True)
-
-
+                    st.markdown('<h3>💬 Motivations</h3>', unsafe_allow_html=True)
+                    st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</span></p>', unsafe_allow_html=True)
                     st.success("Analyse terminée et données insérées dans la base.")
-                else:
-                    st.error("Erreur lors de l'analyse des données.")
-    st.write("Allez dans l'onglet Matching pour trouvez une offre")
-# Contenu pour l'onglet 3 : Matching
-with tabs[2]:
-    st.subheader("🤖 Trouvez le Candidat Idéal pour l'Offre")
-    st.write("Faites correspondre le CV et la Lettre de Motivation au poste disponible.")
-    if cv_file and lm_file:
-        st.button("Lancer le Matching")
-        # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
-        st.write("Les résultats du matching s'affichent ici.")
-    else:
-        st.warning("Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
+   

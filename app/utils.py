@@ -19,19 +19,33 @@ from sklearn.cluster import KMeans
 from collections import Counter
 import plotly.express as px
 from sklearn.manifold import TSNE
+from time import sleep
+import logging
+import os
+import math
 
+# Configuration du logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# 📌 Fonction pour afficher un PDF dans Streamlit
-def show_pdf(file_path):
-    with open(file_path, "rb") as f:
-        pdf_data = f.read()
-    b64_pdf = base64.b64encode(pdf_data).decode("utf-8")
-    pdf_html = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="620" height="700" type="application/pdf"></iframe>'
-    st.markdown(pdf_html, unsafe_allow_html=True)
+#####################################
+# Fonctions Utilitaires & Connexion DB
+#####################################
 
+#📌 Pour l'insertion des cv
+def fix_json_value(val):
+    """
+    Si val est une valeur NaN (float ou 'nan' en texte),
+    on retourne 'null' (littéral JSON).
+    Sinon, on retourne la valeur telle quelle.
+    """
+    if isinstance(val, float) and math.isnan(val):
+        return 'null'
+    if isinstance(val, str) and val.lower() == 'nan':
+        return 'null'
+    return val
 
-# 📌 FONCTION DE CONNEXION À LA BASE DE DONNÉES
-def connect_to_db():
+#📌 Connection a la bdd
+def get_db_connection():
     try:
         conn = psycopg2.connect(
             dbname="webmining",
@@ -42,113 +56,287 @@ def connect_to_db():
         )
         return conn
     except Exception as e:
-        print("❌ Erreur de connexion à la base de données :", e)
+        logging.error("Erreur de connexion à la base de données: %s", e)
         return None
 
-# 📌 EXTRACTION DU TEXTE PDF
-def extract_text_from_pdf(pdf_path):
-    with pdfplumber.open(pdf_path) as pdf:
-        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-    return text
+#####################################
+# Partie 1 : Insertion CSV dans la table cv
+#####################################
 
-# 📌 APPEL API MISTRAL AVEC JSON STRICT
-MISTRAL_API_KEY = "Yp0Uo7Vx4uSJIlc94dj3MA5ME71KpwIR"
+#📌 Fonction pour importer dans la bdd les csv contenant les informations des CSV
+def import_csv_to_cv():
+    csv_folder = os.path.join(os.path.dirname(__file__), "..", "data", "csv") # chemin du dossier contenant les fichiers CSV
+    csv_files = [
+        os.path.join(csv_folder, f)
+        for f in os.listdir(csv_folder)
+        if f.lower().endswith(".csv")
+    ]
+    logging.info("Fichiers CSV détectés : %s", csv_files)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Création de la table cv si elle n'existe pas
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS cv (
+        "ID_CV" VARCHAR(5000) PRIMARY KEY,
+        "Nom" TEXT,
+        "Prenom" TEXT,
+        "Adresse" TEXT,
+        "CodePostal" TEXT,
+        "Ville" TEXT,
+        "NumeroTelephone" TEXT,
+        "Email" TEXT,
+        "Formations" JSONB,
+        "Experiences" JSONB,
+        "Projets" JSONB,
+        "Competences" TEXT
+    )
+    """
+    cursor.execute(create_table_query)
+    conn.commit()
+    
+    # Requête d'insertion dans cv
+    insert_query = """
+    INSERT INTO cv (
+        "ID_CV", 
+        "Nom", 
+        "Prenom", 
+        "Adresse", 
+        "CodePostal", 
+        "Ville", 
+        "NumeroTelephone", 
+        "Email", 
+        "Formations", 
+        "Experiences", 
+        "Projets", 
+        "Competences"
+    ) VALUES (
+        %s, %s, %s, %s, %s, %s, %s, %s, 
+        %s::jsonb, 
+        %s::jsonb, 
+        %s::jsonb, 
+        %s
+    )
+    """
+    
+    # Boucle sur chaque CSV
+    for csv_file_path in csv_files:
+        df = pd.read_csv(csv_file_path, dtype=str)
+        logging.info("Import de %s - %s lignes trouvées.", csv_file_path, len(df))
+        
+        for idx, row in df.iterrows():
+            row_id_cv      = row.get("ID_CV", None)
+            row_nom        = row.get("Nom", None)
+            row_prenom     = row.get("Prenom", None)
+            row_adresse    = row.get("Adresse", None)
+            row_codepostal = row.get("CodePostal", None)
+            row_ville      = row.get("Ville", None)
+            row_telephone  = row.get("NumeroTelephone", None)
+            row_email      = row.get("Email", None)
+            # Pour les colonnes JSONB, on remplace NaN par 'null'
+            row_formations  = fix_json_value(row.get("Formations", None))
+            row_experiences = fix_json_value(row.get("Experiences", None))
+            row_projets     = fix_json_value(row.get("Projets", None))
+            row_competences = row.get("Competences", None)
+            
+            cursor.execute(
+                insert_query,
+                (
+                    row_id_cv,
+                    row_nom,
+                    row_prenom,
+                    row_adresse,
+                    row_codepostal,
+                    row_ville,
+                    row_telephone,
+                    row_email,
+                    row_formations,
+                    row_experiences,
+                    row_projets,
+                    row_competences
+                )
+            )
+        conn.commit()
+        logging.info("Fichier %s inséré avec succès dans 'cv'.", csv_file_path)
+    
+    cursor.close()
+    conn.close()
+    logging.info("Tous les CSV ont été importés dans 'cv'.")
+
+#####################################
+# Partie 2 : Traitement des PDF et insertion dans la table lm
+#####################################
+
+#📌Extraction du texte d'un PDF
+def extract_text_from_pdf(pdf_path):
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+        return text
+    except Exception as e:
+        logging.error("Erreur d'extraction du texte depuis %s: %s", pdf_path, e)
+        return None
+
+# Appel à l'API Mistral avec mécanisme de retry
+MISTRAL_API_KEY = "Yp0Uo7Vx4uSJIlc94dj3MA5ME71KpwIR"  # Adaptez votre clé API
 API_URL = "https://api.mistral.ai/v1/chat/completions"
 
-def query_mistral(prompt):
+def query_mistral(prompt, retries=3, delay=2):
     headers = {
         "Authorization": f"Bearer {MISTRAL_API_KEY}",
         "Content-Type": "application/json"
     }
-
     data = {
         "model": "mistral-medium",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7
     }
-
-    response = requests.post(API_URL, headers=headers, json=data)
-
-    if response.status_code == 200:
+    for attempt in range(1, retries + 1):
         try:
-            return json.loads(response.json()["choices"][0]["message"]["content"])
-        except json.JSONDecodeError:
-            print("⚠️ Erreur : réponse Mistral non valide en JSON.")
-            return None
-    else:
-        print("❌ Erreur API :", response.text)
-        return None
+            response = requests.post(API_URL, headers=headers, json=data)
+            if response.status_code != 200:
+                logging.error("Erreur API (status %s): %s", response.status_code, response.text)
+                sleep(delay)
+                continue
+            content = response.json()["choices"][0]["message"]["content"]
+            result = json.loads(content)
+            return result
+        except (json.JSONDecodeError, KeyError) as e:
+            logging.warning("Tentative %s: Erreur JSON: %s", attempt, e)
+            sleep(delay)
+        except Exception as e:
+            logging.error("Tentative %s: Erreur lors de l'appel à l'API: %s", attempt, e)
+            sleep(delay)
+    return None
 
-# 📌 EXTRACTION DES DONNÉES AVEC FORMAT JSON STRICT
+#📌 Extraction des données via l'API Mistral
 def extract_data(text):
     prompt = f"""
     Voici une lettre de motivation :
     "{text}"
+    Réponds uniquement par un objet JSON formaté exactement comme ceci sans ajouter de texte supplémentaire ni explications :
 
-    Formate ta réponse en JSON avec ces champs :
     {{
-      "competences": "compétence1", "compétence2",
-      "motivations": "motivation1", "motivation2",
-      "lieu": "ville"
+      "competences": ["compétence1", "compétence2"],
+      "motivations": ["motivation1", "motivation2"]
     }}
+
+    La réponse doit débuter par '{{' et se terminer par '}}'.
     """
     return query_mistral(prompt)
 
-# 📌 INSÉRER DANS POSTGRESQL
-def insert_into_db(data):
+# 📌 Insertion dans la table lm (lettres de motivation) avec clé étrangère vers cv("ID_CV")
+def insert_into_db(data, cv_id):
     if not data:
-        print("⚠️ Pas de données à insérer.")
-        return
-
+        logging.warning("Pas de données à insérer.")
+        return False
+    conn = get_db_connection()
+    if not conn:
+        return False
     try:
-        conn = connect_to_db()  # Utilisation de la fonction de connexion
-        if conn is None:
-            return
-
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS lm (
-                id SERIAL PRIMARY KEY,
-                competences JSON,
-                motivations JSON,
-                lieu TEXT
-            )
-        """)
-
-        cursor.execute("""
-            INSERT INTO lm (competences, motivations, lieu)
-            VALUES (%s, %s, %s)
-        """, (json.dumps(data["competences"]), json.dumps(data["motivations"]), data["lieu"]))
-
-        conn.commit()
-        print("✅ Données insérées avec succès !")
-
+        with conn:
+            with conn.cursor() as cursor:
+                # Création de la table lm si elle n'existe pas, avec contrainte FOREIGN KEY référant à cv("ID_CV")
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS lm (
+                        id SERIAL PRIMARY KEY,
+                        competences JSON,
+                        motivations JSON,
+                        cv_id TEXT,
+                        CONSTRAINT fk_cv
+                          FOREIGN KEY (cv_id)
+                          REFERENCES cv("ID_CV")
+                    )
+                """)
+                cursor.execute("""
+                    INSERT INTO lm (competences, motivations, cv_id)
+                    VALUES (%s, %s, %s)
+                """, (
+                    json.dumps(data.get("competences")),
+                    json.dumps(data.get("motivations")),
+                    cv_id
+                ))
+        logging.info("Données insérées avec succès avec cv_id: %s", cv_id)
+        return True
     except Exception as e:
-        print("❌ Erreur PostgreSQL :", e)
-
+        logging.error("Erreur PostgreSQL: %s", e)
+        return False
     finally:
-        cursor.close()
         conn.close()
 
-# 📌 Fonction pour exécuter tout
-def process_and_store_lm(lm_pdf_path):
-    # Extraire le texte de la LM
-    text = extract_text_from_pdf(lm_pdf_path)
-
-    # Analyser les données avec Mistral
+# 📌 Traitement d'un PDF et insertion dans lm
+def process_and_store_lm(pdf_path, cv_id):
+    logging.info("Traitement du fichier : %s", pdf_path)
+    text = extract_text_from_pdf(pdf_path)
+    if not text:
+        logging.warning("Aucun texte extrait de %s", pdf_path)
+        return False
     result = extract_data(text)
-    
-    # Insérer les données extraites dans la base de données
     if result:
-        insert_into_db(result)
-        return result
-    else:
-        return None
+        if insert_into_db(result, cv_id):
+            logging.info("Résultat extrait : %s", result)
+            return True
+    logging.warning("Échec de l'extraction via l'API pour %s", pdf_path)
+    return False
+
+#📌 Traitement de tous les fichiers PDF du dossier spécifié avec assignation d'IDs
+def process_folder():
+    # Construction du chemin absolu vers le dossier "data/lm"
+    folder_path = os.path.join(os.path.dirname(__file__), "..", "data", "lm")
+    
+    cv_ids = [
+        "ID789012",
+        "ID459769",
+        "ID459769",
+        "ID876543",
+        "ID108634",
+        "ID789456",
+        "ID987654",
+        "ID749285",
+        "ID931649",
+        "ID915571",
+        "ID699851",
+        "ID153208",
+        "ID176282",
+        "ID323206",
+        "ID485757"
+    ]
+    
+    if not os.path.exists(folder_path):
+        logging.error("Le dossier '%s' n'existe pas.", folder_path)
+        return
+
+    pdf_files = [
+        os.path.join(folder_path, f)
+        for f in os.listdir(folder_path)
+        if f.lower().endswith(".pdf")
+    ]
+    
+    if not pdf_files:
+        logging.error("Aucun fichier PDF trouvé dans le dossier %s.", folder_path)
+        return
+    
+    if len(pdf_files) != len(cv_ids):
+        logging.warning("Le nombre de fichiers PDF (%s) ne correspond pas au nombre d'IDs (%s).", len(pdf_files), len(cv_ids))
+    
+    for pdf_file, cv_id in zip(pdf_files, cv_ids):
+        process_and_store_lm(pdf_file, cv_id)
+
+
+
+# 📌 Fonction pour afficher un PDF dans Streamlit
+def show_pdf(file_path):
+    with open(file_path, "rb") as f:
+        pdf_data = f.read()
+    b64_pdf = base64.b64encode(pdf_data).decode("utf-8")
+    pdf_html = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="620" height="700" type="application/pdf"></iframe>'
+    st.markdown(pdf_html, unsafe_allow_html=True)
+
     
 # 📌 Récupérer toutes les offres d'emploi depuis la base de données
 def get_offres_from_db():
-    conn = connect_to_db()
+    conn = get_db_connection()
     query = "SELECT * FROM annonces;"
     df = pd.read_sql(query, conn)
     conn.close()
