@@ -25,13 +25,14 @@ st.markdown("""
         text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
     }
     .stButton>button {
-        background-color: #ffff4d;
+        background-color: #45a049;
         font-size: 16px;
         border-radius: 5px;
+        color: white;
     }
     .stButton>button:hover {
-        background-color: #45a049;
-        color: white;
+        
+        background-color: white;
     }
     .stTitle {
         color: #2c3e50;
