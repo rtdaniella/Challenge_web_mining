@@ -4,4 +4,3 @@ fileWatcherType = "auto"
 [theme]
 base="light"
 primaryColor="#2ea22c"
-textColor="#ffffff"
