@@ -165,7 +165,4 @@ def get_daily_listing():
             urls = urls + [link.get("href") for link in soup.select('ul[data-container-type="zone"] > li > a')]
             time.sleep(2)
             break
-    with open("urls.txt", "w") as f:
-        for url in urls:
-            f.write(url+ "\n")
     
