@@ -15,7 +15,8 @@ from utils import (
     generate_wordcloud,
     plot_experience_distribution,
     cluster_offers,
-    plot_tsne
+    plot_tsne,
+    generate_offers_embeddings
 )
 import time
 from st_aggrid import AgGrid, GridOptionsBuilder
@@ -304,13 +305,21 @@ with tabs[2]:
                     <p>{offer_description}</p>
                 </div>
             """, unsafe_allow_html=True)
+
+    if st.button("🔄 Générer l'Embedding de l'Offre Sélectionnée"):
+        offer_data = df_offres[df_offres["reference"] == selected_offer]  # Filtrer l'offre sélectionnée
+        generate_offers_embeddings(offer_data)  # Générer uniquement pour cette offre
+        st.success(f"✅ Embedding généré pour l'offre {selected_offer} !")
+
     
     with col2:
         # Dans la deuxième colonne, afficher un message ou les résultats du matching
-        if cv_file and lm_file:
-            if st.button("Lancer le Matching"):
-                # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
-                st.write(f"Matching en cours pour l'offre : {selected_offer}...")
-                st.write("Les résultats du matching s'affichent ici.")
-        else:
-            st.warning("Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
+        #if cv_file and lm_file:
+            # Ajouter un bouton avec un texte stylisé
+        st.subheader("🏅 Découvrez le Candidat Idéal en Un Clic !")
+        if st.button("Lancer le matching ..."):
+            # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
+            st.write(f"Matching en cours pour l'offre : {selected_offer}...")
+            st.write("Les résultats du matching s'affichent ici.")
+        # else:
+        #     st.warning("⚠️ Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
