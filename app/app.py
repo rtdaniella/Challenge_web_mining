@@ -48,16 +48,16 @@ def table_exists(table_name):
 
 # Vérification automatique des tables et import des données si nécessaire
 if not table_exists("cv"):
-    st.info("La table 'cv' n'existe pas. Importation des CSV...")
+   #st.info("La table 'cv' n'existe pas. Importation des CSV...")
     import_csv_to_cv()
-else:
-    st.info("La table 'cv' existe déjà.")
+# else:
+#     st.info("La table 'cv' existe déjà.")
 
 if not table_exists("lm"):
-    st.info("La table 'lm' n'existe pas. Importation des PDF...")
+    #st.info("La table 'lm' n'existe pas. Importation des PDF...")
     process_folder()
-else:
-    st.info("La table 'lm' existe déjà.")
+# else:
+#     st.info("La table 'lm' existe déjà.")
 
 # Style CSS personnalisé
 st.markdown("""
