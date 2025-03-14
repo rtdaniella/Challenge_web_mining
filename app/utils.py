@@ -26,6 +26,7 @@ import math
 import torch
 import joblib
 from transformers import AutoTokenizer, AutoModel
+import numpy as np
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -659,3 +660,55 @@ def restore_annonces():
     for annonce in annonces:
         print(annonce["reference"])
         to_db(annonce)
+
+
+def generate_candidate_embeddings(cv_df, text_columns=["Competences", "Experiences", "Formations", "Projets", "motivations"]):
+    """
+    Génère des embeddings pour chaque candidature à partir des colonnes textuelles spécifiées.
+    
+    Pour chaque ligne du DataFrame, les valeurs des colonnes indiquées sont combinées
+    en une seule chaîne, prétraitées, puis transformées en embedding via le modèle FlauBERT.
+    
+    Args:
+        cv_df (pd.DataFrame): DataFrame issue de la jointure cv-lm.
+        text_columns (list): Liste des colonnes à utiliser pour générer l'embedding.
+        
+    Returns:
+        np.array: Matrice d'embeddings (chaque ligne correspond à l'embedding d'une candidature).
+    """
+    candidate_texts = []
+    for idx, row in cv_df.iterrows():
+        combined_text = " ".join([str(row.get(col, "")) for col in text_columns])
+        candidate_texts.append(combined_text)
+    
+    # Appliquer le prétraitement sur chaque texte (on conserve le texte nettoyé, qui est le premier élément du tuple)
+    preprocessed_texts = [preprocess_text(text)[0] for text in candidate_texts]
+    
+    embeddings = []
+    for text in preprocessed_texts:
+        inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+        with torch.no_grad():
+            outputs = model(**inputs)
+        # On prend le vecteur du token [CLS] (première position)
+        cls_embedding = outputs.last_hidden_state[:, 0, :].numpy()
+        embeddings.append(cls_embedding)
+    
+    embeddings = np.vstack(embeddings)
+    return embeddings
+
+# 📌 Récupérer les candidatures
+def get_candidatures():
+    """
+    Récupère la jointure entre la table cv et la table lm
+    (cv."ID_CV" et lm.cv_id) et retourne un DataFrame contenant
+    toutes les colonnes de cv ainsi que la colonne 'motivations' de lm.
+    """
+    conn = get_db_connection()
+    query = """
+        SELECT cv.*, lm.motivations
+        FROM cv
+        INNER JOIN lm ON cv."ID_CV" = lm.cv_id;
+    """
+    df = pd.read_sql(query, conn)
+    conn.close()
+    return df

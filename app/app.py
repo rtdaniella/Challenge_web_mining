@@ -10,7 +10,10 @@ from utils import (
     plot_experience_distribution,
     cluster_offers,
     plot_tsne,
-    generate_offers_embeddings
+    generate_offers_embeddings,
+    restore_annonces,
+    generate_candidate_embeddings,
+    get_candidatures
 )
 import time
 from st_aggrid import AgGrid, GridOptionsBuilder
@@ -19,6 +22,8 @@ import os
 import pandas as pd 
 import PIL.Image
 from processor import process_cv_with_gemini, insert_cv_dataframe
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 st.set_page_config(layout="wide")
 
@@ -312,73 +317,130 @@ with tabs[2]:
     # Diviser en 2 colonnes
     col1, col2 = st.columns(2)
     
+    # with col1:
+    #     # Dans la première colonne, on permet de sélectionner une offre
+    #     selected_offer = st.selectbox("🎯 Sélectionnez l'Offre d'Emploi", df_offres['intitule_poste'].unique())
+    #     if selected_offer:
+    #         # Afficher "Offre sélectionnée" avec du style
+    #         st.markdown(f'<div class="selected-offer">Offre sélectionnée : {selected_offer}</div>', unsafe_allow_html=True)
+        
+            
+    #         # Récupérer la description de l'offre en fonction de l'intitulé sélectionné
+    #         offer_description = df_offres[df_offres['intitule_poste'] == selected_offer]['description'].values[0]
+            
+    #         # Ajouter un style CSS personnalisé
+    #         st.markdown("""
+    #             <style>
+    #                 .offer-description {
+    #                     background-color: #ffffff;
+    #                     border-radius: 8px;
+    #                     padding: 20px;
+    #                     color: #333;
+    #                     line-height: 1.6;
+    #                     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    #                 }
+    #                 .offer-description h4 {
+    #                     color: #46a049;
+    #                 }
+    #                 .offer-description ul {
+    #                     list-style-type: disc;
+    #                     margin-left: 20px;
+    #                 }
+    #                 .offer-description li {
+    #                     margin-bottom: 10px;
+    #                 }
+    #                 .selected-offer {
+    #                     background-color: #2a9d8f;
+    #                     color: white;
+    #                     font-size: 1.5em;
+    #                     font-weight: bold;
+    #                     padding: 10px;
+    #                     border-radius: 5px;
+    #                     text-align: center;
+    #                     margin-bottom: 20px;
+    #                     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    #                 }
+    #             </style>
+    #         """, unsafe_allow_html=True)
+            
+    #         # Afficher la description avec du style
+    #         st.markdown(f"""
+    #             <div class="offer-description">
+    #                 <h4>📝 Description du poste :</h4>
+    #                 <p>{offer_description}</p>
+    #             </div>
+    #         """, unsafe_allow_html=True)
+
+    # if st.button("🔄 Générer l'Embedding de l'Offre Sélectionnée"):
+    #     offer_data = df_offres[df_offres["reference"] == selected_offer]  # Filtrer l'offre sélectionnée
+    #     generate_offers_embeddings(offer_data)  # Générer uniquement pour cette offre
+    #     st.success(f"✅ Embedding généré pour l'offre {selected_offer} !")
+
+    # with col2:
+    #     # Dans la deuxième colonne, afficher un message ou les résultats du matching
+    #     #if cv_file and lm_file:
+    #         # Ajouter un bouton avec un texte stylisé
+    #     st.subheader("🏅 Découvrez le Candidat Idéal en Un Clic !")
+    #     if st.button("Lancer le matching ..."):
+    #         # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
+    #         st.write(f"Matching en cours pour l'offre : {selected_offer}...")
+    #         st.write("Les résultats du matching s'affichent ici.")
+    #     # else:
+    #     #     st.warning("⚠️ Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
+
+
     with col1:
         # Dans la première colonne, on permet de sélectionner une offre
         selected_offer = st.selectbox("🎯 Sélectionnez l'Offre d'Emploi", df_offres['intitule_poste'].unique())
         if selected_offer:
-            # Afficher "Offre sélectionnée" avec du style
             st.markdown(f'<div class="selected-offer">Offre sélectionnée : {selected_offer}</div>', unsafe_allow_html=True)
-        
-            
-            # Récupérer la description de l'offre en fonction de l'intitulé sélectionné
+            # Sélection de l'offre dans la colonne intitule_poste
             offer_description = df_offres[df_offres['intitule_poste'] == selected_offer]['description'].values[0]
-            
-            # Ajouter un style CSS personnalisé
-            st.markdown("""
-                <style>
-                    .offer-description {
-                        background-color: #ffffff;
-                        border-radius: 8px;
-                        padding: 20px;
-                        color: #333;
-                        line-height: 1.6;
-                        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-                    }
-                    .offer-description h4 {
-                        color: #46a049;
-                    }
-                    .offer-description ul {
-                        list-style-type: disc;
-                        margin-left: 20px;
-                    }
-                    .offer-description li {
-                        margin-bottom: 10px;
-                    }
-                    .selected-offer {
-                        background-color: #2a9d8f;
-                        color: white;
-                        font-size: 1.5em;
-                        font-weight: bold;
-                        padding: 10px;
-                        border-radius: 5px;
-                        text-align: center;
-                        margin-bottom: 20px;
-                        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-                    }
-                </style>
-            """, unsafe_allow_html=True)
-            
-            # Afficher la description avec du style
             st.markdown(f"""
                 <div class="offer-description">
                     <h4>📝 Description du poste :</h4>
                     <p>{offer_description}</p>
                 </div>
             """, unsafe_allow_html=True)
-
-    if st.button("🔄 Générer l'Embedding de l'Offre Sélectionnée"):
-        offer_data = df_offres[df_offres["reference"] == selected_offer]  # Filtrer l'offre sélectionnée
-        generate_offers_embeddings(offer_data)  # Générer uniquement pour cette offre
-        st.success(f"✅ Embedding généré pour l'offre {selected_offer} !")
+        
+        if st.button("🔄 Générer l'Embedding de l'Offre Sélectionnée", key="gen_offer_embed"):
+            # Filtrer selon l'intitulé sélectionné
+            offer_data = df_offres[df_offres['intitule_poste'] == selected_offer]
+            # generate_offers_embeddings retourne un dictionnaire {id: embedding}
+            offer_embedding_dict = generate_offers_embeddings(offer_data, text_column="description")
+            # Extraction de l'embedding (ici, on suppose qu'il n'y a qu'une seule offre dans offer_data)
+            offer_embedding = list(offer_embedding_dict.values())[0]
+            st.success(f"✅ Embedding généré pour l'offre {selected_offer} !")
 
     with col2:
-        # Dans la deuxième colonne, afficher un message ou les résultats du matching
-        #if cv_file and lm_file:
-            # Ajouter un bouton avec un texte stylisé
         st.subheader("🏅 Découvrez le Candidat Idéal en Un Clic !")
-        if st.button("Lancer le matching ..."):
-            # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
+        if st.button("Lancer le matching ...", key="match"):
             st.write(f"Matching en cours pour l'offre : {selected_offer}...")
-            st.write("Les résultats du matching s'affichent ici.")
-        # else:
-        #     st.warning("⚠️ Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
+            
+            # 1. Récupérer la jointure entre cv et lm
+            candidatures_df = get_candidatures()  # jointure sur cv."ID_CV" et lm.cv_id
+            
+             # 2. Générer les embeddings pour chaque candidature (retourne une matrice numpy)
+            candidate_embeddings = generate_candidate_embeddings(candidatures_df)
+            
+            # 3. Générer l'embedding pour l'offre sélectionnée
+            offer_data = df_offres[df_offres['intitule_poste'] == selected_offer]
+            offer_embedding_dict = generate_offers_embeddings(offer_data, text_column="description")
+            offer_embedding = list(offer_embedding_dict.values())[0]
+            # S'assurer que l'embedding est en forme 2D pour cosine_similarity
+            offer_embedding = offer_embedding.reshape(1, -1)
+            
+            # 4. Calculer la similarité (cosine similarity)
+            sim_matrix = cosine_similarity(candidate_embeddings, offer_embedding)
+            # Pour chaque candidat, sim_matrix[i, 0] donne son score par rapport à l'offre
+            best_candidate_idx = np.argmax(sim_matrix, axis=0)[0]  # index du meilleur candidat
+            best_candidate = candidatures_df.iloc[best_candidate_idx]
+            best_score = sim_matrix[best_candidate_idx, 0]
+            
+            # 5. Afficher les résultats du matching de manière textuelle
+            st.markdown("### Meilleur Candidat Trouvé :")
+            # Affichage de chaque information du candidat en texte
+            for key, value in best_candidate.items():
+                st.markdown(f"**{key}** : {value}")
+
+            st.markdown(f"**Score de similarité :** {best_score:.3f}")
