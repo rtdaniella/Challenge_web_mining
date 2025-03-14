@@ -68,7 +68,8 @@ def get_db_connection():
 
 #📌 Fonction pour importer dans la bdd les csv contenant les informations des CSV
 def import_csv_to_cv():
-    csv_folder = os.path.join(os.path.dirname(__file__), "..", "data", "csv") # chemin du dossier contenant les fichiers CSV
+    csv_folder = "/app/data/csv"
+    # csv_folder = os.path.join(os.path.dirname(__file__), "..", "data", "csv") # chemin du dossier contenant les fichiers CSV
     csv_files = [
         os.path.join(csv_folder, f)
         for f in os.listdir(csv_folder)
@@ -286,8 +287,8 @@ def process_and_store_lm(pdf_path, cv_id):
 #📌 Traitement de tous les fichiers PDF du dossier spécifié avec assignation d'IDs
 def process_folder():
     # Construction du chemin absolu vers le dossier "data/lm"
-    folder_path = os.path.join(os.path.dirname(__file__), "..", "data", "lm")
-    
+    # folder_path = os.path.join(os.path.dirname(__file__), "..", "data", "lm")
+    folder_path = "/app/data/lm"
     cv_ids = [
         "ID789012",
         "ID459769",
@@ -356,7 +357,7 @@ nlp = spacy.load("fr_core_news_sm")
 
 # Charger la liste des stopwords français de NLTK et du fichier CSV
 stop_words = set(stopwords.words('french'))
-stop_Bastin = pd.read_csv("../french_stopwords.csv", sep=";")
+stop_Bastin = pd.read_csv("/app/data/french_stopwords.csv", sep=";")
 stop_words.update(set(stop_Bastin["token"]))
 
 # Ajouter les stopwords personnalisés
@@ -580,3 +581,81 @@ def generate_offers_embeddings(offers_df, text_column="description", save_path="
         joblib.dump(embeddings_dict, f)
     
     return embeddings_dict
+
+
+def make_table():
+    conn = get_db_connection()
+
+    cur = conn.cursor()
+
+    with open("/app/data/sql/db_webmining.sql", "r") as f:
+        create_tables_sql = f.read()
+
+    cur.execute(create_tables_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def to_db(annonce: dict):
+    # Connexion à la base de données PostgreSQL
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    for competence in annonce["competences"]:
+        cur.execute("""
+            INSERT INTO competences (nom)
+            VALUES (%s)
+            ON CONFLICT (nom) DO NOTHING;
+        """, (competence,))
+
+    # Insert postes (job positions)
+    cur.execute("""
+        INSERT INTO annonces (intitule_poste, description, experience, divers, reference)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING reference;
+    """, (annonce["intitule_poste"], annonce["description"], annonce["experience"], annonce["divers"], annonce["reference"]))
+    
+    # print(cur.fetchone())
+    annonce_id = cur.fetchone()[0]
+    print(annonce_id)
+
+    for competence in annonce["competences"]:
+        cur.execute("""
+        INSERT INTO annonce_competences (annonce_reference, competence_id)
+        SELECT %s, id FROM competences WHERE nom = %s;
+        """, (annonce_id, competence))
+
+
+    # Validation des modifications et fermeture de la connexion
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def restore_annonces():
+
+    import json
+
+    annonces = []
+    files = os.listdir("/app/data/annonces")
+    from itertools import chain
+
+
+
+    for file in files:
+        annonce = {}
+        with open("/app/data/annonces/"+file, "r") as f:
+            doc = json.load(f)
+
+        annonce["reference"] = doc["reference"]
+        annonce["intitule_poste"] = doc["intitule_poste"]
+        annonce["description"] = doc["description"]
+        annonce["divers"] = " ".join(doc["divers"])
+        annonce["experience"] = doc["experience"][0]
+        annonce["competences"] = [competence if isinstance(competence, str) else competence[0] for competence in doc["competences"]]
+        annonces.append(annonce)
+
+    make_table()
+    for annonce in annonces:
+        print(annonce["reference"])
+        to_db(annonce)
