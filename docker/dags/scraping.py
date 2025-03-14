@@ -102,13 +102,12 @@ def parse_job():
         time.sleep(2)
 
 
-
 def to_db(annonce: dict):
     '''
     TODO:
-        - corriger l'auto-increment en cas de doublon dans une table
+        - Corriger l'auto-increment en cas de doublon dans une table
     '''
-    # Connexion à la base de données PostgreSQL
+    # Connexion à PostgreSQL
     conn = psycopg2.connect(
         dbname="webmining",
         user="postgres",
@@ -118,6 +117,7 @@ def to_db(annonce: dict):
     )
     cur = conn.cursor()
 
+    # Insert competences
     for competence in annonce["competences"]:
         cur.execute("""
             INSERT INTO competences (nom)
@@ -125,29 +125,83 @@ def to_db(annonce: dict):
             ON CONFLICT (nom) DO NOTHING;
         """, (competence,))
 
-    # Insert postes (job positions)
+    # Insert annonces (job postings) with proper conflict handling
     cur.execute("""
         INSERT INTO annonces (intitule_poste, description, experience, divers, reference)
         VALUES (%s, %s, %s, %s, %s)
-        ON CONFLICT (reference) DO NOTHING;
+        ON CONFLICT (reference) DO NOTHING
         RETURNING reference;
     """, (annonce["intitule_poste"], annonce["description"], annonce["experience"], annonce["divers"], annonce["reference"]))
-    
-    # print(cur.fetchone())
-    annonce_id = cur.fetchone()[0]
-    print(annonce_id)
 
+    result = cur.fetchone()
+    
+    if result:
+        annonce_id = result[0]  # New record inserted
+    else:
+        # Fetch the existing ID in case of conflict
+        cur.execute("SELECT reference FROM annonces WHERE reference = %s;", (annonce["reference"],))
+        annonce_id = cur.fetchone()[0]
+
+    print(f"Annonce ID: {annonce_id}")
+
+    # Insert into annonce_competences
     for competence in annonce["competences"]:
         cur.execute("""
         INSERT INTO annonce_competences (annonce_reference, competence_id)
         SELECT %s, id FROM competences WHERE nom = %s;
         """, (annonce_id, competence))
 
-
-    # Validation des modifications et fermeture de la connexion
+    # Commit changes and close connection
     conn.commit()
     cur.close()
     conn.close()
+
+
+# def to_db(annonce: dict):
+#     '''
+#     TODO:
+#         - corriger l'auto-increment en cas de doublon dans une table
+#     '''
+#     # Connexion à la base de données PostgreSQL
+#     conn = psycopg2.connect(
+#         dbname="webmining",
+#         user="postgres",
+#         password="postgres",
+#         host="my_postgres_container",
+#         port="5432"
+#     )
+#     cur = conn.cursor()
+
+#     for competence in annonce["competences"]:
+#         cur.execute("""
+#             INSERT INTO competences (nom)
+#             VALUES (%s)
+#             ON CONFLICT (nom) DO NOTHING;
+#         """, (competence,))
+
+#     # Insert postes (job positions)
+#     cur.execute("""
+#         INSERT INTO annonces (intitule_poste, description, experience, divers, reference)
+#         VALUES (%s, %s, %s, %s, %s)
+#         ON CONFLICT (reference) DO NOTHING;
+#         RETURNING reference;
+#     """, (annonce["intitule_poste"], annonce["description"], annonce["experience"], annonce["divers"], annonce["reference"]))
+    
+#     # print(cur.fetchone())
+#     annonce_id = cur.fetchone()[0]
+#     print(annonce_id)
+
+#     for competence in annonce["competences"]:
+#         cur.execute("""
+#         INSERT INTO annonce_competences (annonce_reference, competence_id)
+#         SELECT %s, id FROM competences WHERE nom = %s;
+#         """, (annonce_id, competence))
+
+
+#     # Validation des modifications et fermeture de la connexion
+#     conn.commit()
+#     cur.close()
+#     conn.close()
 
 def get_daily_listing():
     pass
