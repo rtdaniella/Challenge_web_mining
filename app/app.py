@@ -61,6 +61,12 @@ if not table_exists("lm"):
 else:
     print("La table 'lm' existe déjà.")
 
+if not table_exists("annonces"):
+    # st.info("La table 'annonces' n'existe pas. Importation des PDF...")
+    restore_annonces()
+else:
+    st.info("La table 'annonces' existe déjà.")
+
 # Style CSS personnalisé
 st.markdown("""
     <style>
