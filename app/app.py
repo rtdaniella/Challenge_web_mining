@@ -394,7 +394,7 @@ with tabs[2]:
 
 
     with col1:
-        # Dans la première colonne, on permet de sélectionner une offre
+        # Sélection de l'offre dans la colonne intitule_poste
         selected_offer = st.selectbox("🎯 Sélectionnez l'Offre d'Emploi", df_offres['intitule_poste'].unique())
         if selected_offer:
             st.markdown(f'<div class="selected-offer">Offre sélectionnée : {selected_offer}</div>', unsafe_allow_html=True)
@@ -408,9 +408,12 @@ with tabs[2]:
             """, unsafe_allow_html=True)
         
         if st.button("🔄 Générer l'Embedding de l'Offre Sélectionnée", key="gen_offer_embed"):
-            offer_data = df_offres[df_offres["reference"] == selected_offer]
-            # Ici, on suppose que generate_offers_embeddings retourne un tableau numpy
-            offer_embedding = generate_offers_embeddings(offer_data, text_column="description")
+            # Filtrer selon l'intitulé sélectionné
+            offer_data = df_offres[df_offres['intitule_poste'] == selected_offer]
+            # generate_offers_embeddings retourne un dictionnaire {id: embedding}
+            offer_embedding_dict = generate_offers_embeddings(offer_data, text_column="description")
+            # Extraction de l'embedding (ici, on suppose qu'il n'y a qu'une seule offre dans offer_data)
+            offer_embedding = list(offer_embedding_dict.values())[0]
             st.success(f"✅ Embedding généré pour l'offre {selected_offer} !")
 
     with col2:
@@ -421,13 +424,15 @@ with tabs[2]:
             # 1. Récupérer la jointure entre cv et lm
             candidatures_df = get_candidatures()  # jointure sur cv."ID_CV" et lm.cv_id
             
-            # 2. Générer les embeddings pour chaque candidature
+            # 2. Générer les embeddings pour chaque candidature (retourne une matrice numpy)
             candidate_embeddings = generate_candidate_embeddings(candidatures_df)
             
             # 3. Générer l'embedding pour l'offre sélectionnée
-            offer_data = df_offres[df_offres["reference"] == selected_offer]
-            
-            offer_embedding = generate_offers_embeddings(offer_data, text_column="description")
+            offer_data = df_offres[df_offres['intitule_poste'] == selected_offer]
+            offer_embedding_dict = generate_offers_embeddings(offer_data, text_column="description")
+            offer_embedding = list(offer_embedding_dict.values())[0]
+            # S'assurer que l'embedding est en forme 2D pour cosine_similarity
+            offer_embedding = offer_embedding.reshape(1, -1)
             
             # 4. Calculer la similarité (cosine similarity)
             sim_matrix = cosine_similarity(candidate_embeddings, offer_embedding)
@@ -435,8 +440,12 @@ with tabs[2]:
             best_candidate_idx = np.argmax(sim_matrix, axis=0)[0]  # index du meilleur candidat
             best_candidate = candidatures_df.iloc[best_candidate_idx]
             best_score = sim_matrix[best_candidate_idx, 0]
-            
-            # 5. Afficher les résultats du matching
+
+            # 5. Afficher les résultats du matching de manière textuelle
             st.markdown("### Meilleur Candidat Trouvé :")
-            st.write(best_candidate)  # Affiche toutes les informations du candidat
-            st.write(f"**Score de similarité :** {best_score:.3f}")
+
+            # Affichage de chaque information du candidat en texte
+            for key, value in best_candidate.items():
+                st.markdown(f"**{key}** : {value}")
+
+            st.markdown(f"**Score de similarité :** {best_score:.3f}")
