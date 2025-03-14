@@ -54,7 +54,7 @@ def get_db_connection():
             dbname="webmining",
             user="postgres",
             password="postgres",
-            host="localhost",
+            host="my_postgres_container",
             port="5432",
         )
         return conn

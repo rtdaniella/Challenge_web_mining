@@ -16,3 +16,5 @@ bertopic
 pyarrow
 matplotlib
 plotly
+sacremoses
+google-generativeai

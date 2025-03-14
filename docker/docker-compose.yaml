@@ -308,7 +308,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - C:\Users\Joel\Documents\Perso\Challenge\app:/app
+      - C:\Users\Joel\Documents\GitHub\Challenge_web_mining\app:/app
     environment:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_SERVER_PORT=8501
