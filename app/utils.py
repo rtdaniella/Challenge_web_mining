@@ -23,6 +23,9 @@ from time import sleep
 import logging
 import os
 import math
+import torch
+import joblib
+from transformers import AutoTokenizer, AutoModel
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -528,3 +531,52 @@ def plot_tsne(X, labels, title="t-SNE Visualisation des Clusters"):
     fig.update_layout(title=title, title_x=0.5, template='plotly_dark')
 
     return fig
+
+# Chargement du modèle FlauBERT
+HF_TOKEN = "token HF"
+
+tokenizer = AutoTokenizer.from_pretrained("flaubert/flaubert_base_uncased")
+model = AutoModel.from_pretrained("flaubert/flaubert_base_uncased")
+
+def generate_offers_embeddings(offers_df, text_column="description", save_path="embeddings_offres.joblib"):
+    """
+    Génère les embeddings des offres d'emploi et les sauvegarde.
+
+    Args:
+        offers_df (pd.DataFrame): DataFrame contenant les offres d'emploi.
+        text_column (str): Nom de la colonne contenant le texte des offres.
+        save_path (str): Chemin du fichier de sauvegarde des embeddings.
+    
+    Returns:
+        dict: Dictionnaire des embeddings avec la référence de l'offre.
+    """
+    from utils import preprocess_text  # Import du prétraitement
+
+    embeddings_dict = {}
+
+    for index, row in offers_df.iterrows():
+        offer_id = row["reference"]  # Adapter si nécessaire
+        raw_text = row.get(text_column, "")
+
+        if not raw_text.strip():  # Vérifier si le texte est vide
+            continue
+        
+        cleaned_text = preprocess_text(raw_text)[0]  # Nettoyage du texte
+        
+        # Tokenisation
+        inputs = tokenizer(cleaned_text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+        
+        # Génération des embeddings
+        with torch.no_grad():
+            outputs = model(**inputs)
+        
+        last_hidden_states = outputs.last_hidden_state
+        cls_embedding = last_hidden_states[:, 0, :].numpy()  # On prend la sortie du token [CLS]
+        
+        embeddings_dict[offer_id] = cls_embedding
+
+    # Sauvegarde des embeddings
+    with open(save_path, "wb") as f:
+        joblib.dump(embeddings_dict, f)
+    
+    return embeddings_dict
