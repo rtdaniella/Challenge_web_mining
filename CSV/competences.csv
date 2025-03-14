@@ -1,0 +1,211 @@
+id,nom,requis
+1,"Analyser, exploiter, structurer des données",False
+2,Concevoir et gérer un projet,False
+3,Enrichir une base de données,False
+4,Faire preuve de curiosité,False
+5,Prendre des initiatives et être force de proposition,False
+6,Travailler en équipe,False
+7,Connaissance cadres réglementaires et financiers,False
+8,Excellentes capacités de communication/synthèse,False
+9,Expertise en énergies renouvelables et systèmes ,False
+10,Gestion de l'intelligence artificielle ,False
+11,Maîtrise des outils de simulation énergétique ,False
+12,Systèmes d'information,False
+14,Déterminer des axes d'évolution technologiques,False
+15,Identifier les contraintes d'un projet,False
+18,Apporter une assistance technique aux équipes,False
+19,Collaborer dans un groupe pour réaliser un projet,False
+20,Communiquer à l'écrit de façon appropriée,False
+21,Data engineer,False
+22,Développer une application en lien avec une base de données,False
+24,Gérer et maitriser des bases de données (SQL/NoSQL),False
+25,Intelligence artificielle,False
+26,Langages de programmation informatique,False
+27,Mastère Spécialisé Expert Big Data engineer,False
+28,Modéliser une base de données,False
+29,Planifier et suivre les échéances de projet,False
+30,Programmation en Python,False
+31,Recueillir et analyser les besoins client,False
+32,Rendre compte de son activité,False
+33,Réaliser une analyse ou modélisation statistique de données,False
+34,"Superviser et coordonner les réalisations, études ou développements informatiques (collaborateurs, sous-traitants)",False
+35,Utiliser l'anglais en contexte professionnel,False
+36,Faire preuve de rigueur et de précision,False
+37,Organiser son travail selon les priorités et les objectifs,False
+39,Ansible,False
+41,Anglais,False
+43,Faire preuve d'autonomie,False
+47,"Concevoir un logiciel, un système d'informations, une application",False
+48,Évaluer le résultat de ses actions,False
+49,"Architecture de réseaux (OSI, TCP/IP...)",False
+50,Audit des systèmes d'information,False
+51,Coordonner l'intervention d'équipes de spécialistes,False
+52,Former les utilisateurs aux nouvelles technologies,False
+53,Former les équipes de techniciens aux opérations de maintenance de base et de maintenance simple des équipements informatiques et réseaux,False
+54,"Garantir le bon fonctionnement, la disponibilité et la performance des éléments de réseaux ou logiciels placés sous sa responsabilité",False
+55,Gestion de parc informatique,False
+56,Gérer les incidents et les problèmes techniques,False
+57,Informer et conseiller les clients et les utilisateurs sur l'utilisation et l'entretien des équipements,False
+58,"Installer et mettre en service les matériels et les logiciels, en conformité avec les normes d'utilisation et les règles de sécurité électrique",False
+60,Intégrer des outils IA/Data Science,False
+61,Maintenance des systèmes informatiques,False
+62,Négocier avec les fournisseurs de solutions IT,False
+63,Proposer des solutions pour optimiser sécurité et performance des matériels,False
+64,Respecter des règles de sécurité,False
+65,Règlement Général européen sur la Protection des Données (RGPD),False
+66,Réseaux informatiques et télécoms,False
+67,Suivre les évolutions technologiques des systèmes d'information et de télécommunications,False
+69,Technologie des fibres optiques,False
+70,Accompagner une personne dans l'acquisition de connaissances,False
+71,Animer un atelier à thème,False
+72,Assurer le suivi de la formation et le tracer dans les outils de suivi pédagogique à disposition,False
+73,Concevoir l'ingénierie de formation et les séquences pédagogiques,False
+74,Techniques pédagogiques,False
+76,"Respecter ses engagements, assumer ses responsabilités",False
+77,"Être à l'écoute, faire preuve d'empathie",False
+78,Adaptation aux changements,False
+79,Aisance relationnelle,False
+80,Analyser les besoins informatiques,False
+81,Capacité d'analyse,False
+82,Coder,False
+83,Conception d'interfaces utilisateur (UI),False
+84,Documenter les procédures techniques pour les utilisateurs,False
+85,Dynamisme,False
+86,Force de propositions,False
+87,Gestion de projet informatique,False
+88,HTML,False
+91,Maintenir à jour la documentation technique et les manuels d'utilisation,False
+92,Optimiser les processus de qualité pour assurer la fiabilité des logiciels,False
+93,Piloter les fonctionnalités des équipements et systèmes de sécurité informatique,False
+95,Promouvoir la collaboration entre les développeurs et les opérateurs pour une meilleure intégration,False
+96,Respecter les normes de sécurité informatique dans le développement,False
+97,Traiter les retours utilisateurs pour améliorer les systèmes,False
+98,Travail en équipe,False
+99,Application web,False
+100,Architecture web,False
+101,Concevoir une application web,False
+102,Surveiller les tendances du marché digital,False
+103,Systèmes d'exploitation informatique,False
+104,"Tester un logiciel, un système d'informations, une application",False
+105,Vérifier la conformité d'une réalisation avec un cahier des charges,False
+106,Avoir le sens du service,False
+111,Déterminer des mesures correctives,False
+113,Machine Learning,False
+114,Réaliser des études et développements informatiques,False
+118,"Rédiger un cahier des charges, des spécifications techniques",False
+122,"Faire preuve de créativité, d'inventivité",False
+124,Analyser les résultats d'un projet,False
+125,Concevoir la maquette numérique d'un ouvrage bâti,False
+126,INTELLIGENCE ARTIFICIELLE,False
+127,Normes de sécurité des espaces et des établissements recevant du public,False
+128,Building Information Modeling (BIM),False
+129,Construction de maisons à ossature bois,False
+131,B - Véhicule léger,False
+134,Faire preuve de réactivité,False
+137,Présenter et promouvoir une formation,False
+139,"Inspirer, donner du sens",False
+149,"Calculer les marges, la rentabilité d'un produit ou d'une activité",False
+150,Indicateurs de suivi d'activité,False
+161,Français,False
+167,Analyser des données techniques pour optimiser les processus,False
+169,Présenter les évolutions du système d'information au commanditaire,False
+170,Recenser les besoins du commanditaire,False
+171,Élaborer des solutions techniques et fonctionnelles,False
+175,Algorithmique,False
+176,Analyser les besoins des utilisateurs pour la création de logiciels,False
+177,Anglais technique,False
+178,Assembler des composants logiciels,False
+180,Conception de bases de données,False
+181,Concevoir et développer une solution digitale,False
+182,Créer une documentation technique,False
+183,Documenter les procédures de développement et d'exploitation,False
+184,"Développer un logiciel, un système d'informations, une application",False
+186,Java,False
+188,Master mention informatique,False
+189,Programmation logicielle,False
+190,"Réaliser un prototype de la solution technique pour validation par le donneur d'ordres (configuration type, ...)",False
+193,Architecture propriétaire,False
+195,"Concevoir l'architecture d'un système, d'un réseau",False
+197,Déploiement de services cloud (cloud computing),False
+198,Gestion de bases de données NoSQL,False
+199,Gestion des configurations,False
+200,Gérer et déployer des logiciels à distance,False
+201,Gérer les versions de logiciels et leur compatibilité,False
+202,Informatique scientifique et technique,False
+205,Optimiser les processus de développement logiciel,False
+206,Promouvoir une culture d'amélioration continue au sein de l'équipe,False
+207,kotlin,False
+208,SQL,False
+224,CSS,False
+230,Javascript,False
+231,jQuery,False
+236,React,False
+237,"Rest, GraphQL API, AJAX",False
+240,Vue.js,False
+241,"Webpack, Grunt, npm",False
+252,Angular,False
+267,Bonne expérience en apprentissage non supervisé,False
+268,Bonne expérience et connaissances en IA,False
+271,Documenter les procédures techniques et configurations,False
+272,"Déployer, intégrer un logiciel, un système d'informations, une application",False
+274,Expérience en apprentissage fédéré et système IoT ,False
+276,Maîtrise de langages de programmation Java C/C++ ,False
+277,Procéder aux phases de tests et de recettes des applications développées,False
+278,Proposer des améliorations pour augmenter l'efficacité des systèmes,False
+279,Protocoles et réseaux IoT basés sur  middlewares,False
+280,Respecter les délais de mise en œuvre des projets,False
+281,Réaliser une veille technique ou technologique pour anticiper les évolutions,False
+282,Tester les nouvelles technologies avant déploiement,False
+284,Expérience dans les technologies IoT-Edge-Cloud,False
+285,"Outils d'orchestration déploiement, configuration ",False
+290,Méthode Agile,False
+313,Analyse des besoins clients pour le cloud,False
+315,Architecture de solutions cloud,False
+316,Assurer la conformité réglementaire des solutions cloud,False
+317,Assurer la liaison entre les équipes techniques et non techniques,False
+318,Développer des automatisations de procédure,False
+319,Gérer des données massives,False
+320,Gérer une base de données numériques,False
+321,Règles de sécurité Informatique et Télécoms,False
+322,"Veiller au respect de la loi Informatique et Libertés et du RGPD dans l'entreprise, gérer la liste des traitements de données à caractère personnel, faire l'interface avec la Commission Nationale de l'Informatique et des Libertés - CNIL",False
+330,"Optimiser des algorithmes, une application informatique et mettre en oeuvre leur développement",False
+333,Accompagner l'appropriation d'un outil par ses utilisateurs,False
+338,Assurer la maintenance préventive et les améliorations des infrastructures numériques,False
+342,Convaincre en argumentant avec un ou plusieurs interlocuteurs (interne et externe),False
+345,"Maîtrise d'un outil de gestion de flux (Kafka, Flink…)",False
+347,Paramétrer un logiciel métier et l'interfacer à d'autres applicatifs,False
+350,Rédiger des documents d'ingénierie (rédaction des spécifications fonctionnelles et livrables techniques des solutions),False
+354,Actualiser régulièrement ses connaissances,False
+355,Anticiper les risques de cybersécurité,False
+356,Business Intelligence (BI) / Informatique décisionnelle,False
+358,Définir les solutions de stockage et de structuration des données,False
+362,Identifier ses axes de progrès,False
+364,Mettre en place des solutions d'amélioration de la performance,False
+365,Piloter des opérations de tests informatiques,False
+366,Piloter des évolutions ou des paramétrages à apporter aux composants,False
+367,Piloter le déploiement et l'intégration d'outils d'optimisation au sein des processus métiers,False
+368,Proposer des pistes d'amélioration des solutions,False
+369,Surveiller le fonctionnement d'applicatifs et logiciels,False
+370,"Sélectionner, assembler et intégrer des composants informatiques (progiciels, bases de données, développements spécifiques, ...)",False
+371,Vérifier la compatibilité des développements produits avec les spécifications,False
+377,"Créer, élaborer et identifier des concepts innovants",False
+385,Systèmes de gestion de base de données,False
+386,Tester et valider les fonctionnalités du logiciel,False
+397,S'adapter aux changements,False
+405,Définir la stratégie des systèmes d'informations,False
+406,"Procéder au choix de réalisation, de traitement en interne ou par sous-traitance et en contrôler la conformité de réalisation",False
+407,"Élaborer un schéma directeur technique, définir des besoins en équipement",False
+411,Adapter sa communication selon les interlocuteurs et les médias utilisés,False
+412,intelligence artificielle,False
+413,"Paramétrer un logiciel, un outil, un système numérique",False
+414,rédaction manuels techniques spécifiques,False
+416,Définir l'identité visuelle d'un site web,False
+417,"Mener un entretien, une interview, une audition",False
+430,Adapter les outils de traitement statistique de données,False
+431,Définir et faire évoluer des procédés de traitement de l'information,False
+444,Gérer une architecture technique,False
+452,Adapter les méthodes de travail à la réglementation locale,False
+454,Analyser / traiter l'information à des fins d'anticipation,False
+468,Expliquer et faire respecter les règles et procédures,False
+478,Technologies HADOOP,False
+479,Technologies SPARK (Framework),False
