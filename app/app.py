@@ -125,6 +125,7 @@ st.markdown("""
     .highlight {
         font-weight: bold;
     }
+            
     </style>
 """, unsafe_allow_html=True)
 
@@ -142,16 +143,16 @@ with tabs[0]:
     # Filtrage par expérience et intitulé de poste
     col1, col2 = st.columns(2)
     with col1:
-        selected_experience = st.selectbox("Sélectionnez le niveau d'expérience", ["Tous"] + list(df_offres['experience'].unique()))
+        selected_experience = st.selectbox("🎓 Sélectionnez le niveau d'expérience", ["Tous"] + list(df_offres['experience'].unique()))
     with col2:
-        selected_intitule = st.selectbox("Sélectionnez l'intitulé du poste", ["Tous"] + list(df_offres['intitule_poste'].unique()))
+        selected_intitule = st.selectbox("👩‍💻 Sélectionnez l'intitulé du poste", ["Tous"] + list(df_offres['intitule_poste'].unique()))
     
     if selected_experience != "Tous":
         df_offres = df_offres[df_offres['experience'] == selected_experience]
     if selected_intitule != "Tous":
         df_offres = df_offres[df_offres['intitule_poste'] == selected_intitule]
     
-    st.write(f"Affichage des offres : Niveau d'expérience '{selected_experience}' et intitulé de poste '{selected_intitule}'")
+    st.subheader(f"📑 Affichage des offres : Niveau d'expérience '{selected_experience}' et intitulé de poste '{selected_intitule}'")
     
     gb = GridOptionsBuilder.from_dataframe(df_offres)
     gb.configure_pagination(paginationPageSize=10)
@@ -241,4 +242,75 @@ with tabs[1]:
                     st.markdown('<h3>💬 Motivations</h3>', unsafe_allow_html=True)
                     st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</span></p>', unsafe_allow_html=True)
                     st.success("Analyse terminée et données insérées dans la base.")
-   
+
+
+# Contenu pour l'onglet 3 : Matching
+with tabs[2]:
+    st.subheader("💎 Trouvez le Candidat Idéal pour l'Offre")
+    
+    # Diviser en 2 colonnes
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Dans la première colonne, on permet de sélectionner une offre
+        selected_offer = st.selectbox("🎯 Sélectionnez l'Offre d'Emploi", df_offres['intitule_poste'].unique())
+        if selected_offer:
+            # Afficher "Offre sélectionnée" avec du style
+            st.markdown(f'<div class="selected-offer">Offre sélectionnée : {selected_offer}</div>', unsafe_allow_html=True)
+        
+            
+            # Récupérer la description de l'offre en fonction de l'intitulé sélectionné
+            offer_description = df_offres[df_offres['intitule_poste'] == selected_offer]['description'].values[0]
+            
+            # Ajouter un style CSS personnalisé
+            st.markdown("""
+                <style>
+                    .offer-description {
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        padding: 20px;
+                        color: #333;
+                        line-height: 1.6;
+                        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    .offer-description h4 {
+                        color: #46a049;
+                    }
+                    .offer-description ul {
+                        list-style-type: disc;
+                        margin-left: 20px;
+                    }
+                    .offer-description li {
+                        margin-bottom: 10px;
+                    }
+                    .selected-offer {
+                        background-color: #2a9d8f;
+                        color: white;
+                        font-size: 1.5em;
+                        font-weight: bold;
+                        padding: 10px;
+                        border-radius: 5px;
+                        text-align: center;
+                        margin-bottom: 20px;
+                        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            # Afficher la description avec du style
+            st.markdown(f"""
+                <div class="offer-description">
+                    <h4>📝 Description du poste :</h4>
+                    <p>{offer_description}</p>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    with col2:
+        # Dans la deuxième colonne, afficher un message ou les résultats du matching
+        if cv_file and lm_file:
+            if st.button("Lancer le Matching"):
+                # Ajoute ici la logique de matching entre le CV, la LM et les offres d'emploi
+                st.write(f"Matching en cours pour l'offre : {selected_offer}...")
+                st.write("Les résultats du matching s'affichent ici.")
+        else:
+            st.warning("Veuillez télécharger un CV et une Lettre de Motivation pour procéder au matching.")
