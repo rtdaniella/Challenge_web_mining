@@ -5,6 +5,7 @@ from utils import (
     process_and_store_lm,
     process_folder,
     show_pdf,
+    show_image,
     get_offres_from_db,
     generate_wordcloud,
     plot_experience_distribution,
@@ -247,57 +248,64 @@ with tabs[1]:
     #                 st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</span></p>', unsafe_allow_html=True)
     #                 st.success("Analyse terminée et données insérées dans la base.")
    
+ 
     with col1:
-        cv_image = st.file_uploader("Téléchargez le CV (Image)", type=["jpg", "jpeg", "png"])
+        cv_image = st.file_uploader("Téléchargez le CV (Image)", type=["jpg", "jpeg", "png"], key="cv_uploader")
         if cv_image is not None:
-            # Bouton pour afficher l'aperçu du CV
-            if st.button("Afficher Aperçu du CV", key="preview_cv"):
-                img = PIL.Image.open(cv_image)
-                st.image(img, caption="Aperçu de l'image du CV", use_container_width=True)
-
+            # Stocker l'image dans la session_state pour réutilisation
+            if "cv_preview_img" not in st.session_state:
+                st.session_state.cv_preview_img = PIL.Image.open(cv_image)
+            
+            # Afficher un expander contenant l'aperçu du CV en utilisant show_image()
+            with st.expander("Aperçu du CV"):
+                temp_path = "cv_temp.jpg"
+                st.session_state.cv_preview_img.save(temp_path)
+                show_image(temp_path)  # Fonction définie dans utils.py
+            
             # Bouton pour analyser et valider le CV
             if st.button("Valider", key="validate_cv"):
-                img = PIL.Image.open(cv_image)
                 progress_bar = st.progress(0)
                 result_df = None
                 for i in range(1, 101):
                     time.sleep(0.05)
                     progress_bar.progress(i)
                     if i == 100:
-                        result_df = process_cv_with_gemini(img)
+                        result_df = process_cv_with_gemini(st.session_state.cv_preview_img)
                 if result_df is not None:
-                    st.write("Données extraites :")
-                    st.dataframe(result_df)
-                    # Récupérer l'ID_CV (supposons qu'il n'y a qu'une seule ligne)
+                    st.write("Données extraites du CV :")
+                    st.write(result_df)  # Affichage du DataFrame extrait
+                    # Récupérer l'ID_CV (on suppose qu'il n'y a qu'une seule ligne)
                     st.session_state.cv_id = result_df.iloc[0]["ID_CV"]
-                    # Insérer le CV dans la base
+                    # Insérer le CV dans la base de données
                     insert_cv_dataframe(result_df)
                     st.success("Le CV a été inséré dans la base avec succès.")
                 else:
                     st.error("L'analyse du CV a échoué.")
-    
+
+
+
+
     with col2:
-        lm_file = st.file_uploader("Téléchargez la Lettre de Motivation (PDF)", type=["pdf"])
+        lm_file = st.file_uploader("Téléchargez la Lettre de Motivation (PDF)", type=["pdf"], key="lm_uploader")
         if lm_file is not None:
             # Afficher un aperçu du PDF dans un expander
             with st.expander("Aperçu de la Lettre de Motivation"):
-                # Sauvegarde temporaire du PDF pour affichage
                 lm_content = lm_file.getvalue()
                 with open("lm_temp.pdf", "wb") as f:
                     f.write(lm_content)
                 show_pdf("lm_temp.pdf")
             
             # Bouton pour valider l'insertion de la lettre de motivation
-            if st.button("Valider"):
+            if st.button("Valider la Lettre de Motivation", key="validate_lm"):
                 if st.session_state.cv_id is not None:
                     if process_and_store_lm("lm_temp.pdf", st.session_state.cv_id):
-                        st.success(f"Les données ont été insérées pour le CV et la lettre de motivation associée.")
-                        # Réinitialiser l'ID du CV après insertion
-                        st.session_state.cv_id = None
+                        st.success("Les données ont été insérées pour le CV et la lettre de motivation associée.")
+                        # Ici, on ne réinitialise pas cv_id pour conserver l'affichage du CV
                     else:
                         st.error("L'insertion de la lettre de motivation a échoué.")
                 else:
                     st.error("Veuillez ajouter le CV avant d'ajouter la lettre de motivation.")
+
 
 # Contenu pour l'onglet 3 : Matching
 with tabs[2]:

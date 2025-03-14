@@ -336,6 +336,19 @@ def show_pdf(file_path):
     pdf_html = f'<iframe src="data:application/pdf;base64,{b64_pdf}" width="620" height="700" type="application/pdf"></iframe>'
     st.markdown(pdf_html, unsafe_allow_html=True)
 
+
+# 📌 Fonction pour afficher CV img dans Streamlit
+def show_image(file_path):
+    """
+    Affiche une image dans Streamlit en utilisant un tag HTML <img>.
+    :param file_path: Chemin vers l'image à afficher.
+    """
+    with open(file_path, "rb") as f:
+        img_data = f.read()
+    b64_img = base64.b64encode(img_data).decode("utf-8")
+    img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="max-width:100%; height:auto;" />'
+    st.markdown(img_html, unsafe_allow_html=True)
+
     
 # 📌 Récupérer toutes les offres d'emploi depuis la base de données
 def get_offres_from_db():
