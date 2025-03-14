@@ -1,17 +1,11 @@
 import streamlit as st
 from utils import (
-    fix_json_value,
     get_db_connection,
     import_csv_to_cv,
-    extract_text_from_pdf,
-    query_mistral,
-    extract_data,
-    insert_into_db,
     process_and_store_lm,
     process_folder,
     show_pdf,
     get_offres_from_db,
-    preprocess_text,
     generate_wordcloud,
     plot_experience_distribution,
     cluster_offers,
@@ -21,8 +15,16 @@ import time
 from st_aggrid import AgGrid, GridOptionsBuilder
 import logging
 import os
+import pandas as pd 
+import PIL.Image
+from processor import process_cv_with_gemini, insert_cv_dataframe
 
 st.set_page_config(layout="wide")
+
+
+# On définit cv_id dans l'espace global de la session
+if 'cv_id' not in st.session_state:
+    st.session_state.cv_id = None
 
 # Fonction pour vérifier si une table existe dans la BDD
 def table_exists(table_name):
@@ -45,16 +47,16 @@ def table_exists(table_name):
 
 # Vérification automatique des tables et import des données si nécessaire
 if not table_exists("cv"):
-    st.info("La table 'cv' n'existe pas. Importation des CSV...")
+    # st.info("La table 'cv' n'existe pas. Importation des CSV...")
     import_csv_to_cv()
 else:
-    st.info("La table 'cv' existe déjà.")
+    print("La table 'cv' existe déjà.")
 
 if not table_exists("lm"):
-    st.info("La table 'lm' n'existe pas. Importation des PDF...")
+    # st.info("La table 'lm' n'existe pas. Importation des PDF...")
     process_folder()
 else:
-    st.info("La table 'lm' existe déjà.")
+    print("La table 'lm' existe déjà.")
 
 # Style CSS personnalisé
 st.markdown("""
@@ -185,48 +187,102 @@ with tabs[0]:
         fig = plot_tsne(X, df_clusters['cluster_name'].values)
         st.plotly_chart(fig)
 
+
 # Onglet 2 : Candidatures
 with tabs[1]:
     st.subheader("📄 Parcourez les Candidatures")
     st.write("Téléchargez un CV et une Lettre de Motivation pour un candidat.")
     col1, col2 = st.columns(2)
     
-    with col1:
-        cv_file = st.file_uploader("Téléchargez votre CV (PDF ou Image)", type=["pdf", "jpg", "jpeg", "png"])
-        if cv_file is not None:
-            with st.expander("Aperçu du CV :"):
-                if cv_file.type == "application/pdf":
-                    with open("cv_temp.pdf", "wb") as f:
-                        f.write(cv_file.read())
-                    show_pdf("cv_temp.pdf")
-                elif cv_file.type in ["image/jpeg", "image/png", "image/jpg"]:
-                    st.download_button(label="Télécharger le CV", data=cv_file, file_name="cv_image.jpg", mime="image/jpeg")
-                    st.image(cv_file, caption="Aperçu de l'image du CV", use_container_width=True)
+    # with col1:
+    #     cv_file = st.file_uploader("Téléchargez votre CV (PDF ou Image)", type=["pdf", "jpg", "jpeg", "png"])
+    #     if cv_file is not None:
+    #         with st.expander("Aperçu du CV :"):
+    #             if cv_file.type == "application/pdf":
+    #                 with open("cv_temp.pdf", "wb") as f:
+    #                     f.write(cv_file.read())
+    #                 show_pdf("cv_temp.pdf")
+    #             elif cv_file.type in ["image/jpeg", "image/png", "image/jpg"]:
+    #                 st.download_button(label="Télécharger le CV", data=cv_file, file_name="cv_image.jpg", mime="image/jpeg")
+    #                 st.image(cv_file, caption="Aperçu de l'image du CV", use_container_width=True)
     
-    with col2:
-        lm_file = st.file_uploader("Téléchargez votre Lettre de Motivation (PDF)", type=["pdf"])
-        if lm_file is not None:
-            with st.expander("Aperçu de la Lettre de Motivation :"):
-                if lm_file.type == "application/pdf":
-                    with open("lm_temp.pdf", "wb") as f:
-                        f.write(lm_file.read())
-                    show_pdf("lm_temp.pdf")
-            if st.button("Démarrer l'Analyse"):
+    # with col2:
+    #     lm_file = st.file_uploader("Téléchargez votre Lettre de Motivation (PDF)", type=["pdf"])
+    #     if lm_file is not None:
+    #         with st.expander("Aperçu de la Lettre de Motivation :"):
+    #             if lm_file.type == "application/pdf":
+    #                 with open("lm_temp.pdf", "wb") as f:
+    #                     f.write(lm_file.read())
+    #                 show_pdf("lm_temp.pdf")
+    #         if st.button("Démarrer l'Analyse"):
+    #             progress_bar = st.progress(0)
+    #             result = None
+    #             for i in range(1, 101):
+    #                 time.sleep(0.10)
+    #                 progress_bar.progress(i)
+    #                 if i == 100:
+    #                     # Note : process_and_store_lm attend un cv_id en argument, ici on utilise une valeur d'exemple.
+    #                     result = process_and_store_lm("lm_temp.pdf", "IDXXXXXX")
+    #             if result:
+    #                 st.write("Données extraites :")
+    #                 st.markdown('<h3>🏷️ Compétences</h3>', unsafe_allow_html=True)
+    #                 st.markdown(f'<p>Compétences mentionnées : <span class="highlight">{result["competences"]}</span></p>', unsafe_allow_html=True)
+    #                 st.markdown('<h3>🌍 Localisation</h3>', unsafe_allow_html=True)
+    #                 st.markdown(f'<p>Lieu de travail souhaité : <span class="highlight">{result["lieu"]}</span></p>', unsafe_allow_html=True)
+    #                 st.markdown('<h3>💬 Motivations</h3>', unsafe_allow_html=True)
+    #                 st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</span></p>', unsafe_allow_html=True)
+    #                 st.success("Analyse terminée et données insérées dans la base.")
+   
+    with col1:
+        cv_image = st.file_uploader("Téléchargez le CV (Image)", type=["jpg", "jpeg", "png"])
+        if cv_image is not None:
+            # Bouton pour afficher l'aperçu du CV
+            if st.button("Afficher Aperçu du CV", key="preview_cv"):
+                img = PIL.Image.open(cv_image)
+                st.image(img, caption="Aperçu de l'image du CV", use_container_width=True)
+
+            # Bouton pour analyser et valider le CV
+            if st.button("Valider", key="validate_cv"):
+                img = PIL.Image.open(cv_image)
                 progress_bar = st.progress(0)
-                result = None
+                result_df = None
                 for i in range(1, 101):
-                    time.sleep(0.10)
+                    time.sleep(0.05)
                     progress_bar.progress(i)
                     if i == 100:
-                        # Note : process_and_store_lm attend un cv_id en argument, ici on utilise une valeur d'exemple.
-                        result = process_and_store_lm("lm_temp.pdf", "IDXXXXXX")
-                if result:
+                        result_df = process_cv_with_gemini(img)
+                if result_df is not None:
                     st.write("Données extraites :")
-                    st.markdown('<h3>🏷️ Compétences</h3>', unsafe_allow_html=True)
-                    st.markdown(f'<p>Compétences mentionnées : <span class="highlight">{result["competences"]}</span></p>', unsafe_allow_html=True)
-                    st.markdown('<h3>🌍 Localisation</h3>', unsafe_allow_html=True)
-                    st.markdown(f'<p>Lieu de travail souhaité : <span class="highlight">{result["lieu"]}</span></p>', unsafe_allow_html=True)
-                    st.markdown('<h3>💬 Motivations</h3>', unsafe_allow_html=True)
-                    st.markdown(f'<p>Motivations mentionnées : <span class="highlight">{result["motivations"]}</span></p>', unsafe_allow_html=True)
-                    st.success("Analyse terminée et données insérées dans la base.")
-   
+                    st.dataframe(result_df)
+                    # Récupérer l'ID_CV (supposons qu'il n'y a qu'une seule ligne)
+                    st.session_state.cv_id = result_df.iloc[0]["ID_CV"]
+                    # Insérer le CV dans la base
+                    insert_cv_dataframe(result_df)
+                    st.success("Le CV a été inséré dans la base avec succès.")
+                else:
+                    st.error("L'analyse du CV a échoué.")
+    
+    with col2:
+        lm_file = st.file_uploader("Téléchargez la Lettre de Motivation (PDF)", type=["pdf"])
+        if lm_file is not None:
+            # Afficher un aperçu du PDF dans un expander
+            with st.expander("Aperçu de la Lettre de Motivation"):
+                # Sauvegarde temporaire du PDF pour affichage
+                lm_content = lm_file.getvalue()
+                with open("lm_temp.pdf", "wb") as f:
+                    f.write(lm_content)
+                show_pdf("lm_temp.pdf")
+            
+            # Bouton pour valider l'insertion de la lettre de motivation
+            if st.button("Valider"):
+                if st.session_state.cv_id is not None:
+                    if process_and_store_lm("lm_temp.pdf", st.session_state.cv_id):
+                        st.success(f"Les données ont été insérées pour le CV et la lettre de motivation associée.")
+                        # Réinitialiser l'ID du CV après insertion
+                        st.session_state.cv_id = None
+                    else:
+                        st.error("L'insertion de la lettre de motivation a échoué.")
+                else:
+                    st.error("Veuillez ajouter le CV avant d'ajouter la lettre de motivation.")
+
+        
