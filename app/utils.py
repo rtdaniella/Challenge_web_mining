@@ -184,7 +184,7 @@ def extract_text_from_pdf(pdf_path):
         return None
 
 # Appel à l'API Mistral avec mécanisme de retry
-MISTRAL_API_KEY = "Yp0Uo7Vx4uSJIlc94dj3MA5ME71KpwIR"  # Adaptez votre clé API
+MISTRAL_API_KEY = ""  # Adaptez votre clé API
 API_URL = "https://api.mistral.ai/v1/chat/completions"
 
 def query_mistral(prompt, retries=3, delay=2):
