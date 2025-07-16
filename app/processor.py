@@ -11,7 +11,7 @@ from utils import get_db_connection, fix_json_value  # Assurez-vous que fix_json
 
 
 # Configure l'API Gemini
-GEMINI_API_KEY = 'AIzaSyDtpKAglnd1t0TsOB8WaYTQ6PlaoCIkXcs'
+GEMINI_API_KEY = '' # Ajouter la clé API ici
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-2.0-flash-exp")
 
